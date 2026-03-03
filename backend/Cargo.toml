@@ -12,4 +12,4 @@ tower-http = { version = "0.5", features = ["cors"] }
 mork-rust-sdk = "0.2.1"
 reqwest = { version = "0.11", features = ["json"] }
 urlencoding = "2.1"
-rocket = "0.5"
+rocket = { version = "0.5", features = ["json"] }

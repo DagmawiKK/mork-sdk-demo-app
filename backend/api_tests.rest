@@ -1,8 +1,8 @@
 ### 1. Health Check
-GET http://localhost:3000/
+GET http://localhost:8000/health-check
 
 ### 2. Ingest Drug Interaction (Aspirin interacts with Warfarin)
-POST http://localhost:3000/ingest/interactions
+POST http://localhost:8000/ingest/interactions
 Content-Type: application/json
 
 {
@@ -12,7 +12,7 @@ Content-Type: application/json
 }
 
 ### 3. Ingest Another Interaction (Ibuprofen interacts with Aspirin)
-POST http://localhost:3000/ingest/interactions
+POST http://localhost:8000/ingest/interactions
 Content-Type: application/json
 
 {
@@ -22,7 +22,7 @@ Content-Type: application/json
 }
 
 ### 4. Add Patient Medication (John Doe takes Aspirin)
-POST http://localhost:3000/patient/add_medication
+POST http://localhost:8000/patient/add_medication
 Content-Type: application/json
 
 {
@@ -31,7 +31,7 @@ Content-Type: application/json
 }
 
 ### 5. Add Patient Medication (John Doe takes Warfarin) -> Creates Risk!
-POST http://localhost:3000/patient/add_medication
+POST http://localhost:8000/patient/add_medication
 Content-Type: application/json
 
 {
@@ -41,9 +41,9 @@ Content-Type: application/json
 
 ### 6. Check Risks for John Doe
 # Expected: Should find the interaction between Aspirin and Warfarin
-GET http://localhost:3000/patient/check_risks/john_doe
+GET http://localhost:8000/patient/check_risks/john_doe
 
 ### 7. Infer Risks (Trigger Transformation)
 # This runs the logic to infer new interactions based on chemical similarity 
 # (Note: Requires 'chemically_similar' data to be present to show results, but endpoint will run)
-POST http://localhost:3000/infer/risks
+POST http://localhost:8000/infer/risks

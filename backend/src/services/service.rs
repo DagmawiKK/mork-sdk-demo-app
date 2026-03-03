@@ -1,9 +1,15 @@
+use std::path::PathBuf;
+
 use crate::models::{DrugInteraction, PatientMedication};
-use mork_rust_sdk::{
-    Mm2Cell, MorkApiClient, Namespace, ReadRequest, TransformDetails, TransformRequest,
+use mork_rust_sdk::mork_api::{
+    Mm2Cell,
+    MorkApiClient,
+    Namespace,
+    ReadRequest,
+    TransformDetails,
+    TransformRequest,
     UploadRequest,
 };
-use std::path::PathBuf;
 
 pub struct GraphService {
     client: MorkApiClient,
@@ -18,33 +24,29 @@ impl GraphService {
 
     pub async fn ingest_interaction(&self, data: DrugInteraction) -> Result<String, String> {
         let interaction_fact = format!(
-            "(interacts {} {} {}",
+            "(interacts {} {} {})",
             data.drug_a, data.drug_b, data.severity
         );
 
+        let pattern = "(interacts $a $b $s)".to_string();
+
         let req = UploadRequest::new()
-            .namespace(PathBuf::from("fda/interactions"))
-            .pattern("(interacts $a $b $s)".to_string())
-            .template(
-                "(__root__ (fda (interactions (__interactionsdata__ (interacts $a $b $s)))))"
-                    .to_string(),
-            )
+            .namespace(PathBuf::from("/fda/interactions"))
+            .pattern(pattern.clone())
+            .template(interaction_fact.clone())
             .data(interaction_fact);
 
-        self.client.dispatch(req).await.map_err(|e| e.to_string());
+        self.client.dispatch(req).await.map_err(|e| e.to_string())
     }
 
     pub async fn add_patient_medication(&self, data: PatientMedication) -> Result<String, String> {
-        let med_fact = format!("takes {} {}", data.user_id, data.drug);
-        let namespace_path = PathBuf::from(format!("patients/{}", data.user_id));
-
+        let med_fact = format!("(takes {} {})", data.user_id, data.drug);
+        let namespace_path = PathBuf::from(format!("/patients/{}", data.user_id));
+        let pattern = "(takes $u $d)".to_string();
         let req = UploadRequest::new()
             .namespace(namespace_path.clone())
-            .pattern("(takes $u $d)".to_string())
-            .template(format!(
-                "(__root__(patients ({} (__{}data__ (takes $u $d)))))",
-                data.user_id, data.user_id
-            ))
+            .pattern(pattern.clone())
+            .template(med_fact.clone())
             .data(med_fact);
 
         self.client.dispatch(req).await.map_err(|e| e.to_string())
@@ -55,20 +57,21 @@ impl GraphService {
             .patterns(vec![
                 Mm2Cell::new_pattern(
                     "(interacts $d1 $d2 $s)".to_string(),
-                    Namespace::from("fda/interactions"),
+                    Namespace::from(PathBuf::from("/fda/interactions")),
                 ),
                 Mm2Cell::new_pattern(
                     format!("(takes {} $d1)", user_id),
-                    Namespace::from(format!("patients/{}", user_id)),
+                    Namespace::from(PathBuf::from(format!("/patients/{}", user_id))),
                 ),
                 Mm2Cell::new_pattern(
                     format!("(takes {} $d2)", user_id),
-                    Namespace::from(format!("patients/{}", user_id)),
+                    Namespace::from(PathBuf::from(format!("/patients/{}", user_id))),
                 ),
             ])
-            .templates(vec![
-                Mm2Cell::new_template("(Warning $d1 $d2 $s").to_string(), Namespace:;from("alerts")
-            ]);
+            .templates(vec![Mm2Cell::new_template(
+                "(Warning $d1 $d2 $s)".to_string(),
+                Namespace::from(PathBuf::from("/alerts")),
+            )]);
 
         // execute transformation
         let _ = self
@@ -80,11 +83,11 @@ impl GraphService {
         let read_input = TransformDetails::new()
             .patterns(vec![Mm2Cell::new_pattern(
                 "$w".to_string(),
-                Namespace::from("alerts"),
+                Namespace::from(PathBuf::from("/alerts")),
             )])
             .templates(vec![Mm2Cell::new_template(
                 "$w".to_string(),
-                Namespace::from("alerts"),
+                Namespace::from(PathBuf::from("/alerts")),
             )]);
 
         let result = self

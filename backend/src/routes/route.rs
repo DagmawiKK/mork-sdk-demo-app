@@ -2,7 +2,7 @@ use crate::models::{DrugInteraction, PatientMedication, RiskResponse};
 use crate::services::GraphService;
 use rocket::{get, post, routes, serde::json::Json};
 
-#[get("/heath-check")]
+#[get("/health-check")]
 pub fn health_check() -> &'static str {
     "MediGraph API is Online"
 }
@@ -38,7 +38,7 @@ pub async fn check_risks(user_id: String) -> Json<RiskResponse> {
 
 pub fn get_routes() -> Vec<rocket::Route> {
     routes![
-        heath_check,
+        health_check,
         ingest_interactions,
         add_medication,
         check_risks
