@@ -27,4 +27,18 @@ impl GraphService {
         self.client.dispatch(req).await.map_err(|e| e.to_string());
     }
 
+    pub async fn add_patient_medication(&self, data: PatientMedication) -> Result<String, String> {
+        let med_fact = format!("takes {} {}", data.user_id, data.drug);
+        let namespace_path = PathBuf::from(format!("patients/{}", data.user_id));
+
+        let req = UploadRequest::new()
+            .namespace(namespace_path.clone())
+            .pattern("(takes $u $d)".to_string())
+            .template(format!("(__root__(patients ({} (__{}data__ (takes $u $d)))))", data.user_id, data.user_id))
+            .data(med_fact);
+
+        self.client.dispatch(req).await.map_err(|e| e.to_string())
+        
+    }
+
 }
