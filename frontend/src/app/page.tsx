@@ -2,15 +2,29 @@
 
 import { useState } from 'react';
 import { api } from '@/lib/api';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InteractionGraph } from '@/components/InteractionGraph'; // Ensure this matches export
-import { AlertTriangle, Plus, Activity, Pill, CheckCircle2 } from 'lucide-react';
+import { InteractionGraph } from '@/components/InteractionGraph'; 
+import { 
+  AlertTriangle, 
+  Activity, 
+  Pill, 
+  CheckCircle2, 
+  Settings, 
+  Network, 
+  Trash2, 
+  X,
+  Database
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
+  // UI State
+  const [activePanel, setActivePanel] = useState<'interactions' | 'similarity' | 'patient' | null>('patient');
+
   // State for Ingest Interaction
   const [ingestForm, setIngestForm] = useState({ drug_a: '', drug_b: '', severity: 'High' });
   const [ingestStatus, setIngestStatus] = useState<string | null>(null);
@@ -86,215 +100,268 @@ export default function Dashboard() {
     }
   };
 
+  // Helper to toggle panels
+  const togglePanel = (panel: 'interactions' | 'similarity' | 'patient') => {
+    if (activePanel === panel) {
+      setActivePanel(null);
+    } else {
+      setActivePanel(panel);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 p-8 font-sans">
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-           <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-             <Activity className="h-8 w-8 text-blue-600" />
-             MediGraph Dashboard
-           </h1>
-           <p className="text-slate-500 mt-2">AI-Powered Drug Interaction Analysis Service</p>
+    <div className="flex flex-col h-screen bg-slate-50 font-sans overflow-hidden">
+      
+      {/* Top Navigation Bar */}
+      <header className="flex-none h-16 border-b bg-white px-6 flex items-center justify-between shadow-sm z-10">
+        <div className="flex items-center gap-6">
+           <div className="flex items-center gap-2">
+             <Activity className="h-6 w-6 text-blue-600" />
+             <h1 className="text-xl font-bold text-slate-900">MediGraph</h1>
+           </div>
+           
+           {/* Primary Actions Toolbar */}
+           <div className="flex items-center gap-2 pl-6 border-l h-8">
+             <Button 
+                variant={activePanel === 'interactions' ? 'secondary' : 'ghost'} 
+                size="sm" 
+                onClick={() => togglePanel('interactions')}
+                className="gap-2"
+             >
+                <Database className="h-4 w-4" />
+                Interactions
+             </Button>
+             <Button 
+                variant={activePanel === 'similarity' ? 'secondary' : 'ghost'} 
+                size="sm" 
+                onClick={() => togglePanel('similarity')}
+                className="gap-2"
+             >
+                <Network className="h-4 w-4" />
+                Similarity
+             </Button>
+             <Button 
+                variant={activePanel === 'patient' ? 'secondary' : 'ghost'} 
+                size="sm" 
+                onClick={() => togglePanel('patient')}
+                className="gap-2"
+             >
+                <Pill className="h-4 w-4" />
+                Patient
+             </Button>
+           </div>
         </div>
-        <div className="text-sm text-slate-400">
-           System Status: <span className="text-green-500 font-medium">Online</span>
+
+        <div className="flex items-center gap-4">
+           {/* Clear Button (Disabled for now) */}
+           <Button variant="outline" size="sm" disabled className="text-slate-400 border-slate-200">
+             <Trash2 className="h-4 w-4 mr-2" />
+             Clear Graph
+           </Button>
+           <div className="text-xs text-slate-400">
+              System: <span className="text-green-500 font-medium">Online</span>
+           </div>
         </div>
       </header>
-      
-      <main className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+      {/* Main Workspace */}
+      <div className="flex-1 flex overflow-hidden relative">
         
-        {/* Left Column: Input Actions */}
-        <div className="lg:col-span-4 space-y-6">
-          
-          {/* Admin / Knowledge Base Ingestion */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5" /> Knowledge Base
-              </CardTitle>
-              <CardDescription>Define known drug interactions (Admin)</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Drug A</Label>
-                  <Input 
-                    placeholder="e.g. Aspirin" 
-                    value={ingestForm.drug_a}
-                    onChange={(e) => setIngestForm({...ingestForm, drug_a: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Drug B</Label>
-                  <Input 
-                    placeholder="e.g. Warfarin" 
-                    value={ingestForm.drug_b}
-                    onChange={(e) => setIngestForm({...ingestForm, drug_b: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Severity</Label>
-                <select 
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  value={ingestForm.severity}
-                  onChange={(e) => setIngestForm({...ingestForm, severity: e.target.value})}
-                >
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
-              </div>
-            </CardContent>
-            <CardFooter className="flex-col items-start gap-2">
-              <Button className="w-full" onClick={handleIngest}>Add Interaction Rule</Button>
-              {ingestStatus && (
-                <p className="text-xs text-green-600 flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> {ingestStatus}
-                </p>
-              )}
-            </CardFooter>
-          </Card>
-          {/* 1b. Chemical Similarity Knowledge Base */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" /> Chemical Similarity
-              </CardTitle>
-              <CardDescription>Define similar drugs (e.g. Ibuprofen ~ Naproxen)</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Drug A</Label>
-                  <Input 
-                    placeholder="e.g. Ibuprofen" 
-                    value={chemSimForm.drug_a}
-                    onChange={(e) => setChemSimForm({...chemSimForm, drug_a: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Similar Drug B</Label>
-                  <Input 
-                    placeholder="e.g. Naproxen" 
-                    value={chemSimForm.drug_b}
-                    onChange={(e) => setChemSimForm({...chemSimForm, drug_b: e.target.value})}
-                  />
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex-col items-start gap-2">
-              <Button className="w-full" variant="secondary" onClick={handleChemSimIngest}>Add Similarity Rule</Button>
-              {chemSimStatus && (
-                <p className="text-xs text-green-600 flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> {chemSimStatus}
-                </p>
-              )}
-            </CardFooter>
-          </Card>
-          {/* Patient Profile Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Pill className="h-5 w-5" /> Patient Profile
-              </CardTitle>
-              <CardDescription>Manage patient medications</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Patient ID</Label>
-                <Input 
-                  value={patientId}
-                  onChange={(e) => setPatientId(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Add Medication</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    placeholder="e.g. Ibuprofen" 
-                    value={medicationInput}
-                    onChange={(e) => setMedicationInput(e.target.value)}
-                  />
-                  <Button variant="secondary" onClick={handleAddMedication}>Add</Button>
-                </div>
-              </div>
+        {/* Dynamic Sidebar Panel */}
+        {activePanel && (
+          <aside 
+            className="w-96 flex-none bg-white border-r shadow-xl overflow-y-auto z-20 animate-in slide-in-from-left duration-300"
+          >
+            <div className="p-4 flex items-center justify-between border-b bg-slate-50/50 sticky top-0 backdrop-blur-sm">
+               <h2 className="font-semibold text-slate-700 flex items-center gap-2">
+                 {activePanel === 'interactions' && <><Database className="h-4 w-4" /> Knowledge Base</>}
+                 {activePanel === 'similarity' && <><Network className="h-4 w-4" /> Chemical Similarity</>}
+                 {activePanel === 'patient' && <><Pill className="h-4 w-4" /> Patient Profile</>}
+               </h2>
+               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setActivePanel(null)}>
+                 <X className="h-4 w-4" />
+               </Button>
+            </div>
+
+            <div className="p-6">
               
-              {/* List of current meds added in session */}
-              <div className="mt-4">
-                <Label className="text-xs text-muted-foreground mb-2 block">Current Medications (Session)</Label>
-                <div className="flex flex-wrap gap-2">
-                  {patientMedications.map((med, i) => (
-                    <span key={i} className="bg-slate-100 text-slate-800 text-xs px-2 py-1 rounded-full border border-slate-200">
-                      {med}
-                    </span>
-                  ))}
-                  {patientMedications.length === 0 && <span className="text-xs text-slate-400 italic">No medications added yet</span>}
+              {/* CONTENT: Interactions */}
+              {activePanel === 'interactions' && (
+                <div className="space-y-6">
+                    <p className="text-sm text-muted-foreground">Define known adverse drug interactions to the global knowledge graph.</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Drug A</Label>
+                          <Input 
+                            placeholder="e.g. Aspirin" 
+                            value={ingestForm.drug_a}
+                            onChange={(e) => setIngestForm({...ingestForm, drug_a: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Drug B</Label>
+                          <Input 
+                            placeholder="e.g. Warfarin" 
+                            value={ingestForm.drug_b}
+                            onChange={(e) => setIngestForm({...ingestForm, drug_b: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Severity</Label>
+                        <select 
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          value={ingestForm.severity}
+                          onChange={(e) => setIngestForm({...ingestForm, severity: e.target.value})}
+                        >
+                          <option value="High">High</option>
+                          <option value="Medium">Medium</option>
+                          <option value="Low">Low</option>
+                        </select>
+                      </div>
+                      <Button className="w-full" onClick={handleIngest}>Add Rule</Button>
+                      
+                      {ingestStatus && (
+                        <div className="p-3 bg-green-50 text-green-700 text-xs rounded-md flex items-center gap-2 border border-green-200">
+                          <CheckCircle2 className="h-3 w-3" /> {ingestStatus}
+                        </div>
+                      )}
                 </div>
+              )}
+
+              {/* CONTENT: Similarity */}
+              {activePanel === 'similarity' && (
+                 <div className="space-y-6">
+                    <p className="text-sm text-muted-foreground">Define chemically similar drugs. Example: Ibuprofen is similar to Naproxen.</p>
+                    <div className="space-y-2">
+                        <Label>Reference Drug (A)</Label>
+                        <Input 
+                          placeholder="e.g. Ibuprofen" 
+                          value={chemSimForm.drug_a}
+                          onChange={(e) => setChemSimForm({...chemSimForm, drug_a: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Similar Drug (B)</Label>
+                        <Input 
+                          placeholder="e.g. Naproxen" 
+                          value={chemSimForm.drug_b}
+                          onChange={(e) => setChemSimForm({...chemSimForm, drug_b: e.target.value})}
+                        />
+                      </div>
+                      <Button variant="secondary" className="w-full mt-2" onClick={handleChemSimIngest}>Add Similarity Rule</Button>
+
+                      {chemSimStatus && (
+                        <div className="p-3 bg-green-50 text-green-700 text-xs rounded-md flex items-center gap-2 border border-green-200">
+                          <CheckCircle2 className="h-3 w-3" /> {chemSimStatus}
+                        </div>
+                      )}
+                 </div>
+              )}
+
+              {/* CONTENT: Patient */}
+              {activePanel === 'patient' && (
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label>Patient ID</Label>
+                      <Input 
+                        value={patientId}
+                        onChange={(e) => setPatientId(e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Add Medication</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Search drug..." 
+                          value={medicationInput}
+                          onChange={(e) => setMedicationInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddMedication()}
+                        />
+                        <Button onClick={handleAddMedication}>Add</Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                       <Label className="text-xs font-semibold uppercase text-slate-500">Active Prescriptions</Label>
+                       <div className="space-y-1">
+                          {patientMedications.length === 0 ? (
+                             <div className="bg-slate-50 rounded border p-4 text-center">
+                               <p className="text-xs text-slate-400 italic">No medications recorded this session.</p>
+                             </div>
+                          ) : (
+                             patientMedications.map((med, i) => (
+                               <div key={i} className="flex items-center justify-between bg-white px-3 py-2 rounded border shadow-sm text-sm hover:bg-slate-50 transition-colors">
+                                  <span className="font-medium">{med}</span>
+                                  <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
+                               </div>
+                             ))
+                          )}
+                       </div>
+                    </div>
+
+                     {addMedStatus && (
+                        <div className="text-xs text-green-600 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> {addMedStatus}
+                        </div>
+                      )}
+                </div>
+              )}
+            </div>
+          </aside>
+        )}
+
+        {/* Dashboard Content (Graph & Alerts) */}
+        <main className="flex-1 overflow-y-auto bg-slate-50/50 p-6 transition-all duration-300">
+           <div className="max-w-6xl mx-auto h-full flex flex-col gap-6">
+              
+              {/* Action Bar */}
+              <div className="flex items-center justify-between">
+                 <div>
+                   <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">Risk Analysis Graph</h2>
+                   <p className="text-slate-500">Visualizing interaction network for {patientId}</p>
+                 </div>
+                 <Button size="lg" onClick={handleCheckRisks} disabled={isChecking} className="shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-shadow">
+                   {isChecking ? <Activity className="mr-2 h-4 w-4 animate-spin" /> : <Activity className="mr-2 h-4 w-4" />}
+                   {isChecking ? 'Analyzing Protocols...' : 'Run Risk Analysis'}
+                 </Button>
               </div>
 
-            </CardContent>
-            <CardFooter>
-               {addMedStatus && (
-                <p className="text-xs text-green-600 flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> {addMedStatus}
-                </p>
-              )}
-            </CardFooter>
-          </Card>
-        </div>
-
-        {/* Right Column: Visualization & Results */}
-        <div className="lg:col-span-8 space-y-6">
-          <Card className="h-full flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Risk Analysis & Visualization</CardTitle>
-                <CardDescription>Graph view of interactions for {patientId}</CardDescription>
-              </div>
-              <Button onClick={handleCheckRisks} disabled={isChecking}>
-                {isChecking ? 'Analyzing...' : 'Check Risks'}
-              </Button>
-            </CardHeader>
-            
-            <CardContent className="flex-1 min-h-[500px] flex flex-col gap-4">
-              
-              {/* Alert Area */}
-              {riskResults.length > 0 ? (
-                <div className="space-y-2">
+              {/* Alert Section */}
+              {riskResults.length > 0 && (
+                <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-500">
                   {riskResults.map((result, idx) => (
-                    <Alert key={idx} variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>Interaction Detected</AlertTitle>
-                      <AlertDescription>
+                    <Alert key={idx} variant="destructive" className="bg-red-50 border-red-200">
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <AlertTitle className="text-red-800">Interaction Detected</AlertTitle>
+                      <AlertDescription className="text-red-700 font-medium">
                         {result}
                       </AlertDescription>
                     </Alert>
                   ))}
                 </div>
-              ) : (
-                <Alert className="bg-green-50 border-green-200 text-green-800">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertTitle>No Risks Detected</AlertTitle>
-                  <AlertDescription>
-                    Patient profile currently shows no known interactions based on analysis.
-                  </AlertDescription>
-                </Alert>
               )}
+              
+              {/* Graph Container */}
+              <Card className="flex-1 min-h-[500px] border-slate-200 shadow-lg overflow-hidden flex flex-col bg-white">
+                 <div className="flex-1 relative">
+                   {/* We pass the medications and risks to the visualization */}
+                   <InteractionGraph 
+                      medications={patientMedications}
+                      risks={riskResults}
+                   />
+                 </div>
+                 <CardFooter className="bg-white text-xs text-slate-400 border-t py-3 flex justify-between">
+                    <span>Powered by MeTTa-KG & Mork SDK</span>
+                    <span>v1.0.0</span>
+                 </CardFooter>
+              </Card>
 
-              {/* Graph Area */}
-              <div className="flex-1 bg-white border rounded-lg shadow-inner relative overflow-hidden">
-                 <InteractionGraph 
-                   medications={patientMedications}
-                   risks={riskResults}
-                 />
-              </div>
+           </div>
+        </main>
 
-            </CardContent>
-          </Card>
-        </div>
-
-      </main>
+      </div>
     </div>
   );
 }
