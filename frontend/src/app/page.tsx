@@ -86,7 +86,7 @@ export default function Dashboard() {
         {/* Left Column: Input Actions */}
         <div className="lg:col-span-4 space-y-6">
           
-          {/* 1. Admin / Knowledge Base Ingestion */}
+          {/* Admin / Knowledge Base Ingestion */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export default function Dashboard() {
             </CardFooter>
           </Card>
 
-          {/* 2. Patient Profile Management */}
+          {/* Patient Profile Management */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

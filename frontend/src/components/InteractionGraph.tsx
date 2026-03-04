@@ -15,7 +15,7 @@ export function InteractionGraph({ medications, risks }: ProGraphProps) {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
 
-    // 1. Create nodes for each medication
+    // Create nodes for each medication
     // Arrange them in a circle or grid
     const radius = 150;
     const centerX = 250;
@@ -37,18 +37,9 @@ export function InteractionGraph({ medications, risks }: ProGraphProps) {
       });
     });
 
-    // 2. Parse risks to create edges
+    // Parse risks to create edges
     // Format: "Warning: DrugA and DrugB (Severity)"
-    // Primitive parsing strategy
     risks.forEach((risk, i) => {
-      // Improve parsing logic based on actual backend output
-      // Backend format is roughly: "Warning: X and Y interact..." or similar?
-      // Actually checking service.rs, it returns strings constructed from the query result.
-      // Let's look at `service.rs` logic again conceptually.
-      // It returns $r (result) from the query. The user provided template was `(interacts $a $b $s)`.
-      // So the returned strings might be just the interaction atom? No, the backend `check_risks` returns `findings`.
-      // Let's assume the string contains the drug names.
-      
       const involvedMeds = medications.filter(m => risk.includes(m));
       
       if (involvedMeds.length >= 2) {
