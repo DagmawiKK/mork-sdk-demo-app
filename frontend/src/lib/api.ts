@@ -1,11 +1,16 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000'; // Default Rocket port
+const API_BASE_URL = 'http://localhost:8000'; 
 
 export interface DrugInteraction {
   drug_a: string;
   drug_b: string;
   severity: string;
+}
+
+export interface ChemicalSimilarity {
+  drug_a: string;
+  drug_b: string;
 }
 
 export interface PatientMedication {
@@ -29,8 +34,18 @@ export const api = {
     return response.data;
   },
 
+  ingestChemicallySimilar: async (data: ChemicalSimilarity) => {
+    const response = await axios.post(`${API_BASE_URL}/ingest/chemically_similar`, data);
+    return response.data;
+  },
+
   addPatientMedication: async (data: PatientMedication) => {
     const response = await axios.post(`${API_BASE_URL}/patient/add_medication`, data);
+    return response.data;
+  },
+
+  inferRisks: async () => {
+    const response = await axios.post(`${API_BASE_URL}/infer_risks`);
     return response.data;
   },
 

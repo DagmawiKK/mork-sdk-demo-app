@@ -15,6 +15,10 @@ export default function Dashboard() {
   const [ingestForm, setIngestForm] = useState({ drug_a: '', drug_b: '', severity: 'High' });
   const [ingestStatus, setIngestStatus] = useState<string | null>(null);
 
+  // State for Chemical Similarity
+  const [chemSimForm, setChemSimForm] = useState({ drug_a: '', drug_b: '' });
+  const [chemSimStatus, setChemSimStatus] = useState<string | null>(null);
+
   // State for Patient Medication
   const [patientId, setPatientId] = useState('patient-001');
   const [medicationInput, setMedicationInput] = useState('');
@@ -38,6 +42,18 @@ export default function Dashboard() {
     }
   };
 
+  const handleChemSimIngest = async () => {
+    try {
+      await api.ingestChemicallySimilar(chemSimForm);
+      setChemSimStatus('Similarity rule added successfully!');
+      setTimeout(() => setChemSimStatus(null), 3000);
+      setChemSimForm({ drug_a: '', drug_b: '' });
+    } catch (e) {
+      console.error(e);
+      setChemSimStatus('Failed to add similarity rule.');
+    }
+  };
+
   const handleAddMedication = async () => {
     if (!medicationInput) return;
     try {
@@ -55,6 +71,10 @@ export default function Dashboard() {
   const handleCheckRisks = async () => {
     setIsChecking(true);
     try {
+      // 1. Trigger Inference
+      await api.inferRisks();
+      
+      // 2. Check Risks
       const response = await api.checkRisks(patientId);
       // The backend returns { user_id, findings: [] }
       setRiskResults(response.findings || []);
@@ -135,7 +155,43 @@ export default function Dashboard() {
               )}
             </CardFooter>
           </Card>
-
+          {/* 1b. Chemical Similarity Knowledge Base */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" /> Chemical Similarity
+              </CardTitle>
+              <CardDescription>Define similar drugs (e.g. Ibuprofen ~ Naproxen)</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Drug A</Label>
+                  <Input 
+                    placeholder="e.g. Ibuprofen" 
+                    value={chemSimForm.drug_a}
+                    onChange={(e) => setChemSimForm({...chemSimForm, drug_a: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Similar Drug B</Label>
+                  <Input 
+                    placeholder="e.g. Naproxen" 
+                    value={chemSimForm.drug_b}
+                    onChange={(e) => setChemSimForm({...chemSimForm, drug_b: e.target.value})}
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex-col items-start gap-2">
+              <Button className="w-full" variant="secondary" onClick={handleChemSimIngest}>Add Similarity Rule</Button>
+              {chemSimStatus && (
+                <p className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" /> {chemSimStatus}
+                </p>
+              )}
+            </CardFooter>
+          </Card>
           {/* Patient Profile Management */}
           <Card>
             <CardHeader>
