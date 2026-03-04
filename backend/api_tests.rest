@@ -39,11 +39,31 @@ Content-Type: application/json
     "drug": "Warfarin"
 }
 
+
+###
+# 5b - Add Patient Medication (John Doe takes Ibuprofen) -> Creates Another Risk!
+POST http://localhost:8000/patient/add_medication
+Content-Type: application/json
+
+{
+    "user_id": "john_doe",
+    "drug": "Naproxen"
+}
+
 ### 6. Check Risks for John Doe
 # Expected: Should find the interaction between Aspirin and Warfarin
 GET http://localhost:8000/patient/check_risks/john_doe
 
-### 7. Infer Risks (Trigger Transformation)
-# This runs the logic to infer new interactions based on chemical similarity 
-# (Note: Requires 'chemically_similar' data to be present to show results, but endpoint will run)
-POST http://localhost:8000/infer/risks
+### 7. Ingest Chemical Similarity (Ibuprofen is similar to Naproxen)
+POST http://localhost:8000/ingest/chemically_similar
+Content-Type: application/json
+
+{
+    "drug_a": "Ibuprofen",
+    "drug_b": "Naproxen"
+}
+
+### 8. Infer Risks (Trigger Transformation)
+# Logic: If Ibuprofen interacts with Aspirin (from step 3), and Ibuprofen is similar to Naproxen (step 7),
+# Then Naproxen also interacts with Aspirin.
+POST http://localhost:8000/infer_risks

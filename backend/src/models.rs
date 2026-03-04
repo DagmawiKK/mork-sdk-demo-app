@@ -18,3 +18,9 @@ pub struct RiskResponse {
     pub user_id: String,
     pub findings: Vec<String>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChemicalSimilarity {
+    pub drug_a: String,
+    pub drug_b: String,
+}

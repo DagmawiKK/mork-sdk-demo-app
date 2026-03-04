@@ -1,13 +1,8 @@
 use std::path::PathBuf;
 
-use crate::models::{DrugInteraction, PatientMedication};
+use crate::models::{ChemicalSimilarity, DrugInteraction, PatientMedication};
 use mork_rust_sdk::mork_api::{
-    Mm2Cell,
-    MorkApiClient,
-    Namespace,
-    ReadRequest,
-    TransformDetails,
-    TransformRequest,
+    Mm2Cell, MorkApiClient, Namespace, ReadRequest, TransformDetails, TransformRequest,
     UploadRequest,
 };
 
@@ -35,6 +30,22 @@ impl GraphService {
             .pattern(pattern.clone())
             .template(interaction_fact.clone())
             .data(interaction_fact);
+
+        self.client.dispatch(req).await.map_err(|e| e.to_string())
+    }
+
+    pub async fn ingest_chemically_similar(
+        &self,
+        data: ChemicalSimilarity,
+    ) -> Result<String, String> {
+        let sim_fact = format!("(chemically_similar {} {})", data.drug_a, data.drug_b);
+        let pattern = "(chemically_similar $a $b)".to_string();
+
+        let req = UploadRequest::new()
+            .namespace(PathBuf::from("/fda/interactions"))
+            .pattern(pattern.clone())
+            .template(sim_fact.clone())
+            .data(sim_fact);
 
         self.client.dispatch(req).await.map_err(|e| e.to_string())
     }
@@ -103,5 +114,45 @@ impl GraphService {
             .collect();
 
         Ok(findings)
+    }
+
+    pub async fn infer_risks(&self) -> Result<String, String> {
+        let fda_ns = Namespace::from(PathBuf::from("/fda/interactions"));
+
+        // If Drug A interacts with Drug B, and Drug A is similar to Drug C, then Drug C interacts with Drug B.
+        let rule_1 = TransformRequest::new().transform_input(
+            TransformDetails::new()
+                .patterns(vec![
+                    Mm2Cell::new_pattern("(interacts $a $b $s)".to_string(), fda_ns.clone()),
+                    Mm2Cell::new_pattern("(chemically_similar $a $c)".to_string(), fda_ns.clone()),
+                ])
+                .templates(vec![Mm2Cell::new_template(
+                    "(interacts $c $b $s)".to_string(),
+                    fda_ns.clone(),
+                )]),
+        );
+
+        // If Drug A interacts with Drug B, and Drug B is similar to Drug C, then Drug A interacts with Drug C.
+        let rule_2 = TransformRequest::new().transform_input(
+            TransformDetails::new()
+                .patterns(vec![
+                    Mm2Cell::new_pattern("(interacts $a $b $s)".to_string(), fda_ns.clone()),
+                    Mm2Cell::new_pattern("(chemically_similar $b $c)".to_string(), fda_ns.clone()),
+                ])
+                .templates(vec![Mm2Cell::new_template(
+                    "(interacts $a $c $s)".to_string(),
+                    fda_ns.clone(),
+                )]),
+        );
+
+        // Execute both rules
+        let res1 = self.client.dispatch(rule_1).await;
+        let res2 = self.client.dispatch(rule_2).await;
+
+        match (res1, res2) {
+            (Ok(_), Ok(_)) => Ok("Inferred risks based on chemical similarity checks".to_string()),
+            (Err(e), _) => Err(e.to_string()),
+            (_, Err(e)) => Err(e.to_string()),
+        }
     }
 }
