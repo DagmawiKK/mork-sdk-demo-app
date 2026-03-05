@@ -52,5 +52,9 @@ export const api = {
   checkRisks: async (userId: string) => {
     const response = await axios.get<RiskResponse>(`${API_BASE_URL}/patient/check_risks/${userId}`);
     return response.data;
-  }
-};
+  },
+  
+  clearData: async (namespace: string, expr: string) => {
+    const response = await axios.post(`${API_BASE_URL}/clear`, { namespace, expr });
+    return response.data;
+  }};

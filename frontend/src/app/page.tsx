@@ -100,6 +100,20 @@ export default function Dashboard() {
     }
   };
 
+  const handleClear = async () => {
+      try {
+        await api.clearData(`/patients/${patientId}`, '*');
+        await api.clearData(`/alerts`, '*');
+        setPatientMedications([]);
+        setRiskResults([]);
+        setAddMedStatus("Patient data cleared.");
+        setTimeout(() => setAddMedStatus(null), 3000);
+      } catch (e) {
+        console.error(e);
+        setAddMedStatus("Failed to clear patient data.");
+      }
+  };
+
   // Helper to toggle panels
   const togglePanel = (panel: 'interactions' | 'similarity' | 'patient') => {
     if (activePanel === panel) {
@@ -153,8 +167,13 @@ export default function Dashboard() {
         </div>
 
         <div className="flex items-center gap-4">
-           {/* Clear Button (Disabled for now) */}
-           <Button variant="outline" size="sm" disabled className="text-slate-400 border-slate-200">
+           {/* Clear Button */}
+           <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleClear}
+            className="text-slate-500 border-slate-300 hover:text-red-600 hover:border-red-600 hover:bg-red-50"
+           >
              <Trash2 className="h-4 w-4 mr-2" />
              Clear Graph
            </Button>
