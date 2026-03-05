@@ -30,3 +30,10 @@ pub struct ClearRequestData {
     pub namespace: String,
     pub expr: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ExploreRequestData {
+    pub namespace: String,
+    pub pattern: String,
+    pub token: Option<String>,
+}

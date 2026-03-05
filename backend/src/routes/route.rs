@@ -1,5 +1,6 @@
 use crate::models::{
-    ChemicalSimilarity, ClearRequestData, DrugInteraction, PatientMedication, RiskResponse,
+    ChemicalSimilarity, ClearRequestData, DrugInteraction, ExploreRequestData, PatientMedication,
+    RiskResponse,
 };
 use crate::services::GraphService;
 use rocket::{get, post, routes, serde::json::Json};
@@ -60,6 +61,7 @@ pub async fn infer_risks() -> Json<String> {
     }
 }
 
+
 #[post("/clear", data = "<input>")]
 pub async fn clear_data(input: Json<ClearRequestData>) -> Json<String> {
     let service = GraphService::new();
@@ -72,6 +74,31 @@ pub async fn clear_data(input: Json<ClearRequestData>) -> Json<String> {
     }
 }
 
+#[post("/explore", data = "<input>")]
+pub async fn explore_data(input: Json<ExploreRequestData>) -> Json<String> {
+    let service = GraphService::new();
+    let expr = input.pattern.clone();
+
+    let token = input.token.clone().unwrap_or_default();
+    let token = if token == "$x" {
+        "".to_string()
+    } else {
+        token
+    };
+
+    match service
+        .explore_data(
+            PathBuf::from(&input.namespace),
+            expr,
+            Some(token),
+        )
+        .await
+    {
+        Ok(res) => Json(res),
+        Err(e) => Json(format!("Error: {}", e)),
+    }
+}
+
 pub fn get_routes() -> Vec<rocket::Route> {
     routes![
         health_check,
@@ -80,6 +107,7 @@ pub fn get_routes() -> Vec<rocket::Route> {
         add_medication,
         check_risks,
         infer_risks,
-        clear_data
+        clear_data,
+        explore_data
     ]
 }
