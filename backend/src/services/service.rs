@@ -16,7 +16,7 @@ impl GraphService {
             client: MorkApiClient::new(),
         }
     }
-// 
+ 
     pub async fn ingest_interaction(&self, data: DrugInteraction) -> Result<String, String> {
         let interaction_fact = format!(
             "(interacts {} {} {})",
@@ -165,7 +165,6 @@ impl GraphService {
                 )]),
         );
 
-        // Execute both rules
         let res1 = self.client.dispatch(rule_1).await;
         let res2 = self.client.dispatch(rule_2).await;
 
@@ -173,6 +172,81 @@ impl GraphService {
             (Ok(_), Ok(_)) => Ok("Inferred risks based on chemical similarity checks".to_string()),
             (Err(e), _) => Err(e.to_string()),
             (_, Err(e)) => Err(e.to_string()),
+        }
+    }
+
+    pub async fn ingest_metta_file(&self, content: String) -> Result<String, String> {
+        let mut processed = 0;
+        let mut errors = Vec::new();
+
+        for line in content.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+
+            // Simple parsing assuming space-separated S-expressions of form (tag arg1 arg2...)
+            // Remove outer parens if present
+            let clean_line = line.trim_start_matches('(').trim_end_matches(')');
+            let parts: Vec<&str> = clean_line.split_whitespace().collect();
+
+            if parts.is_empty() {
+                continue;
+            }
+
+            let result = match parts[0] {
+                "interacts" => {
+                    if parts.len() >= 4 {
+                        self.ingest_interaction(DrugInteraction {
+                            drug_a: parts[1].to_string(),
+                            drug_b: parts[2].to_string(),
+                            severity: parts[3].to_string(),
+                        })
+                        .await
+                    } else {
+                        Err(format!("Invalid format for 'interacts': {}", line))
+                    }
+                }
+                "chemically_similar" => {
+                    if parts.len() >= 3 {
+                        self.ingest_chemically_similar(ChemicalSimilarity {
+                            drug_a: parts[1].to_string(),
+                            drug_b: parts[2].to_string(),
+                        })
+                        .await
+                    } else {
+                        Err(format!("Invalid format for 'chemically_similar': {}", line))
+                    }
+                }
+                "takes" => {
+                    if parts.len() >= 3 {
+                        self.add_patient_medication(PatientMedication {
+                            user_id: parts[1].to_string(),
+                            drug: parts[2].to_string(),
+                        })
+                        .await
+                    } else {
+                        Err(format!("Invalid format for 'takes': {}", line))
+                    }
+                }
+                _ => Ok("Skipped unknown or unsupported relation".to_string()),
+            };
+
+            match result {
+                Ok(_) => processed += 1,
+                Err(e) => errors.push(e),
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(format!("Successfully processed {} facts from file.", processed))
+        } else {
+            Ok(format!(
+                "Processed {} facts. Encountered {} errors: {}",
+                processed,
+                errors.len(),
+                errors.join("; ")
+            ))
         }
     }
 }

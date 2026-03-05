@@ -99,6 +99,15 @@ pub async fn explore_data(input: Json<ExploreRequestData>) -> Json<String> {
     }
 }
 
+#[post("/ingest/metta", data = "<input>")]
+pub async fn ingest_metta(input: String) -> Json<String> {
+    let service = GraphService::new();
+    match service.ingest_metta_file(input).await {
+        Ok(msg) => Json(msg),
+        Err(e) => Json(format!("Error: {}", e)),
+    }
+}
+
 pub fn get_routes() -> Vec<rocket::Route> {
     routes![
         health_check,
@@ -108,6 +117,7 @@ pub fn get_routes() -> Vec<rocket::Route> {
         check_risks,
         infer_risks,
         clear_data,
-        explore_data
+        explore_data,
+        ingest_metta
     ]
 }
