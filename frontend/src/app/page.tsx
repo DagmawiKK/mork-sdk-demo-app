@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { InteractionGraph } from '@/components/InteractionGraph'; 
+import { InteractionGraph, RiskItem } from '@/components/InteractionGraph'; 
 import { 
   AlertTriangle, 
   Activity, 
@@ -40,7 +40,7 @@ export default function Dashboard() {
   const [addMedStatus, setAddMedStatus] = useState<string | null>(null);
 
   // State for Risk Analysis
-  const [riskResults, setRiskResults] = useState<string[]>([]);
+  const [riskResults, setRiskResults] = useState<RiskItem[]>([]);
   const [isChecking, setIsChecking] = useState(false);
 
   // Handlers
@@ -85,16 +85,40 @@ export default function Dashboard() {
   const handleCheckRisks = async () => {
     setIsChecking(true);
     try {
-      // 1. Trigger Inference
       await api.inferRisks();
       
-      // 2. Check Risks
-      const response = await api.checkRisks(patientId);
-      // The backend returns { user_id, findings: [] }
-      setRiskResults(response.findings || []);
+      await api.checkRisks(patientId); 
+
+      const exploreRes = await api.exploreData('/alerts', '$x', '');
+      
+      // Parse the JSON string response
+      // Mork returns a string that is a JSON array of objects { token, expr }
+      const results: { expr: string }[] = JSON.parse(exploreRes);
+      
+      const newRisks: RiskItem[] = [];
+      const regex = /\(Warning\s+([^\s)]+)\s+([^\s)]+)\s+([^\s)]+)\)/;
+
+      results.forEach(item => {
+        const match = item.expr.match(regex);
+        if (match) {
+           const [_, d1, d2, severity] = match;
+           // Remove parentheses if caught (unlikely with [^\\s]+ but just in case)
+           const cleanD1 = d1.replace(/[()]/g, '');
+           const cleanD2 = d2.replace(/[()]/g, '');
+           const cleanSev = severity.replace(/[()]/g, '');
+           
+           newRisks.push({
+             drugA: cleanD1,
+             drugB: cleanD2,
+             severity: cleanSev,
+             description: `Interaction detected between ${cleanD1} and ${cleanD2} (${cleanSev})`
+           });
+        }
+      });
+
+      setRiskResults(newRisks);
     } catch (e) {
       console.error(e);
-      setRiskResults(['Error checking risks.']);
     } finally {
       setIsChecking(false);
     }
@@ -355,7 +379,7 @@ export default function Dashboard() {
                       <AlertTriangle className="h-4 w-4 text-red-600" />
                       <AlertTitle className="text-red-800">Interaction Detected</AlertTitle>
                       <AlertDescription className="text-red-700 font-medium">
-                        {result}
+                        {result.description}
                       </AlertDescription>
                     </Alert>
                   ))}
@@ -372,8 +396,8 @@ export default function Dashboard() {
                    />
                  </div>
                  <CardFooter className="bg-white text-xs text-slate-400 border-t py-3 flex justify-between">
-                    <span>Powered by MeTTa-KG & Mork SDK</span>
-                    <span>v1.0.0</span>
+                    <span>Powered byMork SDK</span>
+                    <span>v0.2.1</span>
                  </CardFooter>
               </Card>
 

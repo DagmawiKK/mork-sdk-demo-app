@@ -57,4 +57,10 @@ export const api = {
   clearData: async (namespace: string, expr: string) => {
     const response = await axios.post(`${API_BASE_URL}/clear`, { namespace, expr });
     return response.data;
-  }};
+  },
+
+  exploreData: async (namespace: string, pattern: string, token: string) => {
+    const response = await axios.post(`${API_BASE_URL}/explore`, { namespace, pattern, token });
+    return response.data;
+  },
+};

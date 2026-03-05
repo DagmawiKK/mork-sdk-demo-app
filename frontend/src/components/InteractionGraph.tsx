@@ -4,9 +4,16 @@ import React, { useMemo } from 'react';
 import ReactFlow, { Background, Controls, Node, Edge, Position } from 'reactflow';
 import 'reactflow/dist/style.css';
 
+export interface RiskItem {
+  drugA: string;
+  drugB: string;
+  severity: string;
+  description: string;
+}
+
 interface ProGraphProps {
   medications: string[];
-  risks: string[]; // Strings like "Warning: Aspirin and Warfarin (High)"
+  risks: RiskItem[]; 
 }
 
 export function InteractionGraph({ medications, risks }: ProGraphProps) {
@@ -21,8 +28,17 @@ export function InteractionGraph({ medications, risks }: ProGraphProps) {
     const centerX = 250;
     const centerY = 200;
 
-    medications.forEach((med, index) => {
-      const angle = (index / medications.length) * 2 * Math.PI;
+    // We need all unique drugs from both medications AND risks to ensure all nodes exist
+    const uniqueDrugs = new Set(medications);
+    risks.forEach(r => {
+      uniqueDrugs.add(r.drugA);
+      uniqueDrugs.add(r.drugB);
+    });
+    
+    const allDrugs = Array.from(uniqueDrugs);
+
+    allDrugs.forEach((med, index) => {
+      const angle = (index / allDrugs.length) * 2 * Math.PI;
       const x = centerX + radius * Math.cos(angle);
       const y = centerY + radius * Math.sin(angle);
 
@@ -38,21 +54,22 @@ export function InteractionGraph({ medications, risks }: ProGraphProps) {
     });
 
     // Parse risks to create edges
-    // Format: "Warning: DrugA and DrugB (Severity)"
     risks.forEach((risk, i) => {
-      const involvedMeds = medications.filter(m => risk.includes(m));
-      
-      if (involvedMeds.length >= 2) {
-         edges.push({
-           id: `e-${i}`,
-           source: involvedMeds[0],
-           target: involvedMeds[1],
-           label: 'Interacts',
-           animated: true,
-           style: { stroke: 'red' },
-           labelStyle: { fill: 'red', fontWeight: 700 }
-         });
-      }
+      // Color coding based on severity
+      let strokeColor = '#777';
+      if (risk.severity.toLowerCase() === 'high') strokeColor = 'red';
+      else if (risk.severity.toLowerCase() === 'moderate') strokeColor = 'orange';
+      else if (risk.severity.toLowerCase() === 'low') strokeColor = 'yellow';
+
+      edges.push({
+        id: `e-${i}`,
+        source: risk.drugA,
+        target: risk.drugB,
+        label: risk.severity,
+        animated: true,
+        style: { stroke: strokeColor, strokeWidth: 2 },
+        labelStyle: { fill: strokeColor, fontWeight: 700 }
+      });
     });
 
     return { nodes, edges };
