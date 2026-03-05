@@ -63,4 +63,11 @@ export const api = {
     const response = await axios.post(`${API_BASE_URL}/explore`, { namespace, pattern, token });
     return response.data;
   },
+
+  ingestMetta: async (content: string) => {
+    const response = await axios.post(`${API_BASE_URL}/ingest/metta`, content, {
+      headers: { 'Content-Type': 'text/plain' }
+    });
+    return response.data;
+  },
 };

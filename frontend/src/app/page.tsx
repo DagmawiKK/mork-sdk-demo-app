@@ -17,17 +17,22 @@ import {
   Network, 
   Trash2, 
   X,
-  Database
+  Database,
+  UploadCloud
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   // UI State
-  const [activePanel, setActivePanel] = useState<'interactions' | 'similarity' | 'patient' | null>('patient');
+  const [activePanel, setActivePanel] = useState<'interactions' | 'similarity' | 'patient' | 'metta' | null>('patient');
 
   // State for Ingest Interaction
   const [ingestForm, setIngestForm] = useState({ drug_a: '', drug_b: '', severity: 'High' });
   const [ingestStatus, setIngestStatus] = useState<string | null>(null);
+
+  // State for Ingest Metta
+  const [mettaCode, setMettaCode] = useState('');
+  const [mettaStatus, setMettaStatus] = useState<string | null>(null);
 
   // State for Chemical Similarity
   const [chemSimForm, setChemSimForm] = useState({ drug_a: '', drug_b: '' });
@@ -53,6 +58,30 @@ export default function Dashboard() {
     } catch (e) {
       console.error(e);
       setIngestStatus('Failed to add interaction rule.');
+    }
+  };
+
+  const handleFileRead = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) setMettaCode(content);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleMettaUpload = async () => {
+    try {
+      const res = await api.ingestMetta(mettaCode);
+      setMettaStatus(res);
+      setMettaCode('');
+      setTimeout(() => setMettaStatus(null), 5000);
+    } catch (e) {
+      console.error(e);
+      setMettaStatus('Failed to upload Metta file.');
     }
   };
 
@@ -139,7 +168,7 @@ export default function Dashboard() {
   };
 
   // Helper to toggle panels
-  const togglePanel = (panel: 'interactions' | 'similarity' | 'patient') => {
+  const togglePanel = (panel: 'interactions' | 'similarity' | 'patient' | 'metta') => {
     if (activePanel === panel) {
       setActivePanel(null);
     } else {
@@ -187,6 +216,15 @@ export default function Dashboard() {
                 <Pill className="h-4 w-4" />
                 Patient
              </Button>
+             <Button 
+                variant={activePanel === 'metta' ? 'secondary' : 'ghost'} 
+                size="sm" 
+                onClick={() => togglePanel('metta')}
+                className="gap-2"
+             >
+                <UploadCloud className="h-4 w-4" />
+                Upload Metta
+             </Button>
            </div>
         </div>
 
@@ -220,6 +258,7 @@ export default function Dashboard() {
                  {activePanel === 'interactions' && <><Database className="h-4 w-4" /> Knowledge Base</>}
                  {activePanel === 'similarity' && <><Network className="h-4 w-4" /> Chemical Similarity</>}
                  {activePanel === 'patient' && <><Pill className="h-4 w-4" /> Patient Profile</>}
+                 {activePanel === 'metta' && <><UploadCloud className="h-4 w-4" /> Upload Metta</>}
                </h2>
                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setActivePanel(null)}>
                  <X className="h-4 w-4" />
@@ -269,6 +308,28 @@ export default function Dashboard() {
                           <CheckCircle2 className="h-3 w-3" /> {ingestStatus}
                         </div>
                       )}
+                </div>
+              )}
+
+              {/* CONTENT: Metta Upload */}
+              {activePanel === 'metta' && (
+                <div className="space-y-6">
+                    <p className="text-sm text-muted-foreground">Upload raw Metta code to bulk-ingest facts.</p>
+                    <div className="space-y-2">
+                       <Label>Upload File (.metta)</Label>
+                       <Input 
+                         type="file" 
+                         accept=".metta,.txt"
+                         onChange={handleFileRead}
+                       />
+                    </div>
+                    <Button className="w-full" onClick={handleMettaUpload}>Upload Facts</Button>
+
+                    {mettaStatus && (
+                      <div className="p-3 bg-blue-50 text-blue-700 text-xs rounded-md border border-blue-200 whitespace-pre-wrap">
+                         {mettaStatus}
+                      </div>
+                    )}
                 </div>
               )}
 
