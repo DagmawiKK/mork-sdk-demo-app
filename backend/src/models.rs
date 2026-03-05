@@ -24,3 +24,9 @@ pub struct ChemicalSimilarity {
     pub drug_a: String,
     pub drug_b: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ClearRequestData {
+    pub namespace: String,
+    pub expr: String,
+}

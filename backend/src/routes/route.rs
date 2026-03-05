@@ -1,6 +1,9 @@
-use crate::models::{ChemicalSimilarity, DrugInteraction, PatientMedication, RiskResponse};
+use crate::models::{
+    ChemicalSimilarity, ClearRequestData, DrugInteraction, PatientMedication, RiskResponse,
+};
 use crate::services::GraphService;
 use rocket::{get, post, routes, serde::json::Json};
+use std::path::PathBuf;
 
 #[get("/health-check")]
 pub fn health_check() -> &'static str {
@@ -57,6 +60,18 @@ pub async fn infer_risks() -> Json<String> {
     }
 }
 
+#[post("/clear", data = "<input>")]
+pub async fn clear_data(input: Json<ClearRequestData>) -> Json<String> {
+    let service = GraphService::new();
+    match service
+        .clear_data(PathBuf::from(&input.namespace), input.expr.clone())
+        .await
+    {
+        Ok(_) => Json("Data cleared: ACK".to_string()),
+        Err(e) => Json(format!("Error: {}", e)),
+    }
+}
+
 pub fn get_routes() -> Vec<rocket::Route> {
     routes![
         health_check,
@@ -64,6 +79,7 @@ pub fn get_routes() -> Vec<rocket::Route> {
         ingest_chemically_similar,
         add_medication,
         check_risks,
-        infer_risks
+        infer_risks,
+        clear_data
     ]
 }

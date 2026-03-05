@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use crate::models::{ChemicalSimilarity, DrugInteraction, PatientMedication};
 use mork_rust_sdk::mork_api::{
-    Mm2Cell, MorkApiClient, Namespace, ReadRequest, TransformDetails, TransformRequest,
-    UploadRequest,
+    ClearRequest, Mm2Cell, MorkApiClient, Namespace, ReadRequest, TransformDetails,
+    TransformRequest, UploadRequest,
 };
 
 pub struct GraphService {
@@ -46,6 +46,12 @@ impl GraphService {
             .pattern(pattern.clone())
             .template(sim_fact.clone())
             .data(sim_fact);
+
+        self.client.dispatch(req).await.map_err(|e| e.to_string())
+    }
+
+    pub async fn clear_data(&self, namespace: PathBuf, pattern: String) -> Result<String, String> {
+        let req = ClearRequest::new().namespace(namespace).expr(pattern);
 
         self.client.dispatch(req).await.map_err(|e| e.to_string())
     }
