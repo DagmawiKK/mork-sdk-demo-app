@@ -40,16 +40,22 @@ export function DashboardView({
 
               {/* Alert Section */}
               {riskResults.length > 0 && (
-                <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-500">
-                  {riskResults.map((result, idx) => (
-                    <Alert key={idx} variant="destructive" className="bg-red-50 border-red-200">
-                      <AlertTriangle className="h-4 w-4 text-red-600" />
-                      <AlertTitle className="text-red-800">Interaction Detected</AlertTitle>
-                      <AlertDescription className="text-red-700 font-medium">
-                        {result.description}
-                      </AlertDescription>
-                    </Alert>
-                  ))}
+                <div className="animate-in slide-in-from-bottom-2 duration-500">
+                  <Alert variant="destructive" className="bg-red-50 border-red-200">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    <AlertTitle className="text-red-800">
+                      {riskResults.length} Interaction{riskResults.length > 1 ? 's' : ''} Detected
+                    </AlertTitle>
+                    <AlertDescription className="text-red-700 font-medium mt-2 max-h-32 overflow-y-auto no-scrollbar">
+                      <ul className="list-disc pl-4 space-y-1">
+                        {riskResults.map((result, idx) => (
+                          <li key={idx}>
+                            {result.description}
+                          </li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
                 </div>
               )}
               
