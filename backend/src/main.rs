@@ -1,29 +1,10 @@
 #[macro_use]
 extern crate rocket;
 
-use rocket::http::Method;
-use rocket_cors::{AllowedHeaders, AllowedOrigins, CorsOptions};
-
-mod models;
-mod routes;
-mod services;
+use backend::build_rocket;
 
 #[launch]
 fn rocket() -> _ {
-    println!("Starting MediGraph Backend...");
-
-    let cors = CorsOptions::default()
-        .allowed_origins(AllowedOrigins::all())
-        .allowed_methods(
-            vec![Method::Get, Method::Post, Method::Patch]
-                .into_iter()
-                .map(From::from)
-                .collect(),
-        )
-        .allowed_headers(AllowedHeaders::all())
-        .allow_credentials(true);
-
-    rocket::build()
-        .attach(cors.to_cors().unwrap())
-        .mount("/", routes::get_routes())
+    build_rocket()
 }
+
